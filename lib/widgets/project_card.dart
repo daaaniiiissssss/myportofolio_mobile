@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:myportofolio_mobile/screens/education_form.dart';
 import 'package:myportofolio_mobile/screens/menu.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 
@@ -7,6 +8,23 @@ class ItemCard extends StatelessWidget {
   final ItemHomepage item;
 
   const ItemCard(this.item, {super.key});
+
+  /// Membuka halaman yang sesuai dengan nama kartu memakai Navigator.push(),
+  /// sehingga pengguna bisa kembali lewat tombol back bawaan.
+  void _openPage(BuildContext context) {
+    final Widget? page = switch (item.name) {
+      'Tambah Proyek' => const ProjectFormPage(),
+      'Tambah Education' => const EducationFormPage(),
+      _ => null,
+    };
+
+    if (page != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => page),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +44,7 @@ class ItemCard extends StatelessWidget {
               ),
             );
 
-          // Navigate ke halaman yang sesuai
-          if (item.name == "Tambah Item") {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ProjectFormPage(),
-              ),
-            );
-          }
+          _openPage(context);
         },
         child: Center(
           child: Padding(
