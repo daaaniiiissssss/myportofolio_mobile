@@ -1,30 +1,62 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:myportofolio_mobile/models/experience.dart';
+import 'package:myportofolio_mobile/services/api_client.dart';
 
-import 'package:myportofolio_mobile/main.dart';
+const _sample = {
+  'id': '11111111-1111-1111-1111-111111111111',
+  'title': 'Backend Intern',
+  'description': 'Built APIs',
+  'category': 'internship',
+  'category_display': 'Internship',
+  'thumbnail': null,
+  'started_at': '2026-01-01T00:00:00Z',
+  'ended_at': null,
+  'is_ongoing': true,
+  'star_count': 2,
+};
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('Experience.fromJson maps snake_case keys and null thumbnail', () {
+    final e = Experience.fromJson(_sample);
+    expect(e.title, 'Backend Intern');
+    expect(e.categoryDisplay, 'Internship');
+    expect(e.thumbnail, '');
+    expect(e.isOngoing, isTrue);
+    expect(e.starCount, 2);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('Experience.toJson omits server-generated fields', () {
+    final json = Experience.fromJson(_sample).toJson();
+    expect(json.containsKey('id'), isFalse);
+    expect(json.containsKey('started_at'), isFalse);
+    expect(json['title'], 'Backend Intern');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('ApiClient.getExperiences parses the list response', () async {
+    final client = MockClient((request) async {
+      expect(request.url.path, '/api/v1/experiences/');
+      return http.Response(
+        jsonEncode([_sample]),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final api = ApiClient(client: client, baseUrl: 'http://test');
+    final result = await api.getExperiences();
+    expect(result, hasLength(1));
+    expect(result.first.title, 'Backend Intern');
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('ApiClient throws ApiException on non-2xx', () async {
+    final client = MockClient((_) async => http.Response('nope', 401));
+    final api = ApiClient(client: client, baseUrl: 'http://test');
+    expect(
+      () => api.obtainToken('a', 'b'),
+      throwsA(isA<ApiException>()),
+    );
   });
 }
